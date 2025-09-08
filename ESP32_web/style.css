@@ -1,14 +1,81 @@
-html {font-family: Helvetica, sans-serif;}
-h1 {font-size: 1.5rem; color:#1976D2;}
-label {font-size: 14px;}
-.div_Form {margin:auto; width:90%; border:1px solid #D8D8D8; border-radius:10px; background-color:#f2f2f2; padding:9px;}
-.myButton {display:inline-block; padding:5px 25px; font-size:13px; cursor:pointer; color:#fff; background-color:#1976D2; border:none; border-radius:8px; box-shadow:0 3px #999;}
-.myButton:hover {background-color:#104d89;}
-.myButton:active {background-color:#104d89; box-shadow:0 1px #666; transform:translateY(2px);}
-.myButton:disabled {background-color:#666; box-shadow:0 1px #666; transform:translateY(2px);}
-.div_Form_Input {display:table; margin:0; padding:0; box-sizing:border-box;}
-.div_Input_Text {display:table-cell; width:100%;}
-.div_Input_Text > input {width:99.5%; margin-left:0; padding-left:2px; box-sizing:border-box;}
-table, th, td {border:0; font-size:14px;}
-tr {height:30px;}
-hr {border:1px solid #e6e6e6;}
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Helvetica, sans-serif;
+  background-color: #000;
+  color: #eaeaea;
+}
+
+.header {
+  text-align: center;
+  padding: 20px 0;
+}
+
+h1 {
+  font-size: 1.8rem;
+  color: #4dabf7;
+}
+
+.form-box {
+  margin: 20px auto;
+  width: 90%;
+  max-width: 400px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.8);
+}
+
+label {
+  font-size: 14px;
+  margin-top: 12px;
+  display: block;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 6px;
+  outline: none;
+  background: #1e1e1e;
+  color: #eaeaea;
+}
+
+input[type="color"] {
+  height: 40px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.myButton {
+  margin-top: 15px;
+  width: 100%;
+  padding: 10px;
+  font-size: 15px;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #1976D2, #0d47a1);
+  border: none;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+
+.myButton:hover {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+
+pre {
+  margin: 20px auto;
+  width: 90%;
+  max-width: 400px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 15px;
+  color: #90ee90;
+  font-size: 13px;
+  overflow-x: auto;
+}
