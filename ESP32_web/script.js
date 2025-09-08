@@ -1,4 +1,3 @@
-// ===== Conectar no HiveMQ MQTT Broker =====
 const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
 client.on("connect", function () {
@@ -11,7 +10,6 @@ client.on("message", function (topic, message) {
     "\n📩 " + topic + " => " + message.toString();
 });
 
-// Converte #hex para RGB
 function hexToRgb(hex) {
   const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return res
@@ -23,21 +21,24 @@ function hexToRgb(hex) {
     : null;
 }
 
-// Envia comando MQTT
 function enviar() {
   const brilho = parseInt(document.getElementById("input_Brightness").value);
   const cor = hexToRgb(document.getElementById("input_Color").value);
+  const corFundo = hexToRgb(document.getElementById("input_Background").value);
   const tamanho = document.getElementById("input_Text_Size").value;
   const ypos = document.getElementById("input_Y_Position").value;
+  const modo = document.getElementById("input_Mode").value;
   const velocidade = document.getElementById("input_Scrolling_Speed").value;
   const texto = document.getElementById("input_Scrolling_Text").value;
 
   const msg = {
     brilho: brilho,
     cor: [cor.r, cor.g, cor.b],
+    corFundo: [corFundo.r, corFundo.g, corFundo.b],
     tamanho: tamanho,
     ypos: ypos,
-    velocidade: velocidade,
+    modo: modo,
+    velocidade: modo === "scroll" ? velocidade : 0,
     texto: texto,
   };
 
