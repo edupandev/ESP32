@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Controle Painel LED via MQTT</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- CSS externo -->
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
@@ -18,6 +17,9 @@
 
       <label>Cor do Texto:</label>
       <input type="color" id="input_Color" value="#00ff00">
+
+      <label>Cor de Fundo:</label>
+      <input type="color" id="input_Background" value="#000000">
 
       <label>Tamanho:</label>
       <select id="input_Text_Size">
@@ -33,7 +35,13 @@
         <option value="3">3</option>
       </select>
 
-      <label>Velocidade:</label>
+      <label>Modo de Exibição:</label>
+      <select id="input_Mode">
+        <option value="scroll">Rolante</option>
+        <option value="fixed">Fixo</option>
+      </select>
+
+      <label>Velocidade (apenas rolante):</label>
       <select id="input_Scrolling_Speed">
         <option value="20">20</option>
         <option value="40">40</option>
@@ -48,9 +56,7 @@
 
     <pre id="status"></pre>
 
-    <!-- Biblioteca MQTT -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <!-- JS externo -->
     <script src="script.js"></script>
   </body>
 </html>
