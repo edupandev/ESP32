@@ -1,0 +1,14 @@
+html {font-family: Helvetica, sans-serif;}
+h1 {font-size: 1.5rem; color:#1976D2;}
+label {font-size: 14px;}
+.div_Form {margin:auto; width:90%; border:1px solid #D8D8D8; border-radius:10px; background-color:#f2f2f2; padding:9px;}
+.myButton {display:inline-block; padding:5px 25px; font-size:13px; cursor:pointer; color:#fff; background-color:#1976D2; border:none; border-radius:8px; box-shadow:0 3px #999;}
+.myButton:hover {background-color:#104d89;}
+.myButton:active {background-color:#104d89; box-shadow:0 1px #666; transform:translateY(2px);}
+.myButton:disabled {background-color:#666; box-shadow:0 1px #666; transform:translateY(2px);}
+.div_Form_Input {display:table; margin:0; padding:0; box-sizing:border-box;}
+.div_Input_Text {display:table-cell; width:100%;}
+.div_Input_Text > input {width:99.5%; margin-left:0; padding-left:2px; box-sizing:border-box;}
+table, th, td {border:0; font-size:14px;}
+tr {height:30px;}
+hr {border:1px solid #e6e6e6;}
