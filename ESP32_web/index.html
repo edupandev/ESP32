@@ -69,7 +69,8 @@
     <script>
       // ===== Conectar no HiveMQ MQTT Broker =====
       // Sem SSL (funciona no Live Server / localhost)
-      const client = mqtt.connect("ws://broker.hivemq.com:8000/mqtt");
+      const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
 
 // Se quiser SSL (wss://), use a porta 8884
 // const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
@@ -119,3 +120,4 @@
     </script>
   </body>
 </html>
+
