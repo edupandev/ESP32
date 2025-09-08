@@ -1,30 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
     <title>Controle Painel LED via MQTT</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-      html {font-family: Helvetica, sans-serif;}
-      h1 {font-size: 1.5rem; color:#1976D2;}
-      .form-box {
-        margin: auto; width: 90%; border:1px solid #D8D8D8;
-        border-radius: 10px; background-color: #f2f2f2; padding: 12px;
-      }
-      label {font-size: 14px; display: block; margin-top: 8px;}
-      input, select {width: 100%; padding: 6px; margin-top: 4px;}
-      .myButton {
-        margin-top: 12px;
-        display: inline-block; padding: 8px 25px;
-        font-size: 14px; cursor: pointer;
-        color: #fff; background-color: #1976D2;
-        border: none; border-radius: 8px; box-shadow: 0 3px #999;
-      }
-      .myButton:hover {background-color: #104d89}
-    </style>
+    <!-- CSS externo -->
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div style="text-align: center;">
+    <div class="header">
       <h1>Controle do Painel LED</h1>
     </div>
 
@@ -66,58 +50,7 @@
 
     <!-- Biblioteca MQTT -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <script>
-      // ===== Conectar no HiveMQ MQTT Broker =====
-      // Sem SSL (funciona no Live Server / localhost)
-      const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
-
-// Se quiser SSL (wss://), use a porta 8884
-// const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
-
-      client.on("connect", function() {
-        document.getElementById("status").textContent = "✅ Conectado ao HiveMQ";
-        client.subscribe("painel_led_test");
-      });
-
-      client.on("message", function(topic, message) {
-        document.getElementById("status").textContent += 
-          "\n📩 " + topic + " => " + message.toString();
-      });
-
-      // Converte #hex para RGB
-      function hexToRgb(hex) {
-        const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return res ? {
-          r: parseInt(res[1], 16),
-          g: parseInt(res[2], 16),
-          b: parseInt(res[3], 16)
-        } : null;
-      }
-
-      // Envia comando MQTT
-      function enviar() {
-        const brilho = parseInt(document.getElementById("input_Brightness").value);
-        const cor = hexToRgb(document.getElementById("input_Color").value);
-        const tamanho = document.getElementById("input_Text_Size").value;
-        const ypos = document.getElementById("input_Y_Position").value;
-        const velocidade = document.getElementById("input_Scrolling_Speed").value;
-        const texto = document.getElementById("input_Scrolling_Text").value;
-
-        const msg = {
-          brilho: brilho,
-          cor: [cor.r, cor.g, cor.b],
-          tamanho: tamanho,
-          ypos: ypos,
-          velocidade: velocidade,
-          texto: texto
-        };
-
-        client.publish("painel_led_test", JSON.stringify(msg));
-        document.getElementById("status").textContent += "\n📤 Enviado: " + JSON.stringify(msg);
-      }
-    </script>
+    <!-- JS externo -->
+    <script src="script.js"></script>
   </body>
 </html>
-
