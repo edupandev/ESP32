@@ -12,6 +12,9 @@
     </div>
 
     <div class="form-box">
+      <label>Texto:</label>
+      <input type="text" id="input_Scrolling_Text" maxlength="26" placeholder="Digite aqui...">
+      
       <label>Brilho (0-255):</label>
       <input type="number" id="input_Brightness" value="50" min="0" max="255">
 
@@ -29,10 +32,10 @@
 
       <label>Y Pos:</label>
       <select id="input_Y_Position">
-        <option value="0">0</option>
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
+        <option value=0>0</option>
+        <option value=1>1</option>
+        <option value=2>2</option>
+        <option value=3>3</option>
       </select>
 
       <label>Modo de Exibição:</label>
@@ -43,13 +46,12 @@
 
       <label>Velocidade (apenas rolante):</label>
       <select id="input_Scrolling_Speed">
-        <option value="20">20</option>
-        <option value="40">40</option>
-        <option value="60">60</option>
+        <option value=20>20</option>
+        <option value=40>40</option>
+        <option value=60>60</option>
       </select>
 
-      <label>Texto:</label>
-      <input type="text" id="input_Scrolling_Text" maxlength="26" placeholder="Digite aqui...">
+      
 
       <button class="myButton" onclick="enviar()">Enviar</button>
     </div>
