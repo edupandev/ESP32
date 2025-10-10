@@ -30,6 +30,8 @@ function enviar() {
   const modo = document.getElementById("input_Mode").value;
   const velocidade = document.getElementById("input_Scrolling_Speed").value;
   const texto = document.getElementById("input_Scrolling_Text").value;
+ 
+
 
   const msg = {
     brilho: brilho,
