@@ -13,8 +13,19 @@
 
     <div class="form-box">
       <label>Texto:</label>
-      <input type="text" id="input_Scrolling_Text" maxlength="26" placeholder="Digite aqui...">
-      
+      <input type="text" id="input_Scrolling_Text" maxlength="100" placeholder="Digite aqui...">
+
+      <!-- 🆕 Lista de textos pré-definidos -->
+      <label>Textos pré-definidos:</label>
+      <select id="preset_Texts" onchange="selecionarTexto()">
+        <option value="">-- Selecione um texto --</option>
+        <option value="Bem-vindo!">Bem-vindo!</option>
+        <option value="Perigo!">Perigo!</option>
+        <option value="Atencao no Volante">Atencao no Volante</option>
+        <option value="Nada de celular no transito">Nada de celular no transito</option>
+        <option value="Siga-nos nas redes sociais!">Siga-nos nas redes sociais!</option>
+      </select>
+
       <label>Brilho (0-255):</label>
       <input type="number" id="input_Brightness" value="50" min="0" max="255">
 
@@ -27,15 +38,19 @@
       <label>Tamanho:</label>
       <select id="input_Text_Size">
         <option value="1">1</option>
-        <option value="2">2</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
       </select>
 
       <label>Y Pos:</label>
       <select id="input_Y_Position">
-        <option value=0>0</option>
-        <option value=1>1</option>
-        <option value=2>2</option>
-        <option value=3>3</option>
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="12">centralizado</option>
       </select>
 
       <label>Modo de Exibição:</label>
@@ -46,12 +61,10 @@
 
       <label>Velocidade (apenas rolante):</label>
       <select id="input_Scrolling_Speed">
-        <option value=20>20</option>
-        <option value=40>40</option>
-        <option value=60>60</option>
+        <option value="20">20</option>
+        <option value="40">40</option>
+        <option value="60">60</option>
       </select>
-
-      
 
       <button class="myButton" onclick="enviar()">Enviar</button>
     </div>
@@ -60,5 +73,16 @@
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="script.js"></script>
+
+    <!-- 🧠 Função para preencher o texto -->
+    <script>
+      function selecionarTexto() {
+        const select = document.getElementById("preset_Texts");
+        const textoSelecionado = select.value;
+        if (textoSelecionado) {
+          document.getElementById("input_Scrolling_Text").value = textoSelecionado;
+        }
+      }
+    </script>
   </body>
 </html>
