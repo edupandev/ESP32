@@ -1,88 +1,181 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <title>Controle Painel LED via MQTT</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <div class="header">
-      <h1>Controle do Painel LED</h1>
-    </div>
+<head>
+<meta charset="UTF-8">
+<title>Controle Painel LED via MQTT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
 
-    <div class="form-box">
-      <label>Texto:</label>
-      <input type="text" id="input_Scrolling_Text" maxlength="100" placeholder="Digite aqui...">
+<div id="login-screen" class="form-box">
+  <h1>Login</h1>
+  <label>Usuário:</label>
+  <input type="text" id="login_user" placeholder="Digite seu usuário">
+  <label>Senha:</label>
+  <input type="password" id="login_pass" placeholder="Digite sua senha">
+  <button class="myButton" onclick="fazerLogin()">Entrar</button>
+  <pre id="login_status"></pre>
+</div>
 
-      <!-- 🆕 Lista de textos pré-definidos -->
-      <label>Textos pré-definidos:</label>
-      <select id="preset_Texts" onchange="selecionarTexto()">
-        <option value="">-- Selecione um texto --</option>
-        <option value="Bem-vindo!">Bem-vindo!</option>
-        <option value="Perigo!">Perigo!</option>
-        <option value="Atencao no Volante">Atencao no Volante</option>
-        <option value="Nada de celular no transito">Nada de celular no transito</option>
-        <option value="Siga-nos nas redes sociais!">Siga-nos nas redes sociais!</option>
-      </select>
+<div id="control-screen" class="form-box" style="display:none;">
+  <h1>Controle do Painel LED</h1>
+  
+  <h3>Dispositivos conectados:</h3>
+  <select id="deviceList">
+    <option value="">-- Selecione um dispositivo --</option>
+  </select>
 
-      <label>Brilho (0-255):</label>
-      <input type="number" id="input_Brightness" value="50" min="0" max="255">
+  <label>Texto:</label>
+  <input type="text" id="input_Scrolling_Text" maxlength="100" placeholder="Digite aqui...">
 
-      <label>Cor do Texto:</label>
-      <input type="color" id="input_Color" value="#FFFFFF">
+  <label>Textos pré-definidos:</label>
+  <select id="preset_Texts" onchange="selecionarTexto()">
+    <option value="">-- Selecione um texto --</option>
+    <option value="Bem-vindo!">Bem-vindo!</option>
+    <option value="Perigo!">Perigo!</option>
+    <option value="Atencao no Volante">Atencao no Volante</option>
+    <option value="Nada de celular no transito">Nada de celular no transito</option>
+    <option value="Siga-nos nas redes sociais!">Siga-nos nas redes sociais!</option>
+  </select>
 
-      <label>Cor de Fundo:</label>
-      <input type="color" id="input_Background" value="#000000">
+  <label>Brilho (0-255):</label>
+  <input type="number" id="input_Brightness" value="50" min="0" max="255">
 
-      <label>Tamanho:</label>
-      <select id="input_Text_Size">
-        <option value="1">1</option>
-        <option value="2" selected>2</option>
-        <option value="3">3</option>
-      </select>
+  <label>Cor do Texto:</label>
+  <input type="color" id="input_Color" value="#FFFFFF">
 
-      <label>Y Pos:</label>
-      <select id="input_Y_Position">
-        <option value="0">0</option>
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="12">centralizado</option>
-      </select>
+  <label>Cor de Fundo:</label>
+  <input type="color" id="input_Background" value="#000000">
 
-      <label>Modo de Exibição:</label>
-      <select id="input_Mode">
-        <option value="scroll">Rolante</option>
-        <option value="fixed">Fixo</option>
-      </select>
+  <label>Tamanho:</label>
+  <select id="input_Text_Size">
+    <option value="1">1</option>
+    <option value="2" selected>2</option>
+    <option value="3">3</option>
+  </select>
 
-      <label>Velocidade (apenas rolante):</label>
-      <select id="input_Scrolling_Speed">
-        <option value="20">20</option>
-        <option value="40">40</option>
-        <option value="60">60</option>
-      </select>
+  <label>Y Pos:</label>
+  <select id="input_Y_Position">
+    <option value="0">0</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="12">Centralizado</option>
+  </select>
 
-      <button class="myButton" onclick="enviar()">Enviar</button>
-    </div>
+  <label>Modo de Exibição:</label>
+  <select id="input_Mode">
+    <option value="scroll">Rolante</option>
+    <option value="fixed">Fixo</option>
+  </select>
 
-    <pre id="status"></pre>
+  <label>Velocidade (apenas rolante):</label>
+  <select id="input_Scrolling_Speed">
+    <option value="20">20</option>
+    <option value="40">40</option>
+    <option value="60">60</option>
+  </select>
 
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <script src="script.js"></script>
+  <button class="myButton" onclick="enviar()">Enviar</button>
+  <pre id="status"></pre>
+</div>
 
-    <!-- 🧠 Função para preencher o texto -->
-    <script>
-      function selecionarTexto() {
-        const select = document.getElementById("preset_Texts");
-        const textoSelecionado = select.value;
-        if (textoSelecionado) {
-          document.getElementById("input_Scrolling_Text").value = textoSelecionado;
+<script>
+let client = null;
+let meuUsuario = '';
+let minhaSenha = '';
+let dispositivos = {};
+
+function conectarMQTT() {
+    client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+    client.on("connect", function() {
+        console.log("Conectado ao HiveMQ");
+        client.subscribe("painel_led_dispositivos");
+        client.subscribe("painel_led_status");
+    });
+    client.on("message", function(topic, message) {
+        let msg = message.toString();
+        try {
+            let doc = JSON.parse(msg);
+            if(topic === "painel_led_dispositivos") {
+                if(doc.user === meuUsuario) {
+                    dispositivos[doc.name] = doc;
+                    atualizarListaDispositivos();
+                }
+            }
+            if(topic === "painel_led_status") {
+                console.log("Status:", doc);
+            }
+        } catch(e) {
+            console.log("Mensagem não JSON:", msg);
         }
-      }
-    </script>
-  </body>
+    });
+}
+
+function atualizarListaDispositivos() {
+    let sel = document.getElementById("deviceList");
+    sel.innerHTML = '<option value="">-- Selecione um dispositivo --</option>';
+    for(let d in dispositivos) {
+        sel.innerHTML += `<option value="${d}">${d}</option>`;
+    }
+}
+
+function fazerLogin() {
+    meuUsuario = document.getElementById("login_user").value.trim();
+    minhaSenha = document.getElementById("login_pass").value.trim();
+    if(meuUsuario && minhaSenha) {
+        document.getElementById("login-screen").style.display = "none";
+        document.getElementById("control-screen").style.display = "block";
+        conectarMQTT();
+    } else {
+        document.getElementById("login_status").textContent = "Informe usuário e senha!";
+    }
+}
+
+function selecionarTexto() {
+    const select = document.getElementById("preset_Texts");
+    const textoSelecionado = select.value;
+    if (textoSelecionado) {
+        document.getElementById("input_Scrolling_Text").value = textoSelecionado;
+    }
+}
+
+function enviar() {
+    let device = document.getElementById("deviceList").value;
+    if(!device) {
+        alert("Selecione um dispositivo!");
+        return;
+    }
+
+    let payload = {
+        destino: device,
+        user: meuUsuario,
+        pass: minhaSenha,
+        texto: document.getElementById("input_Scrolling_Text").value,
+        brilho: parseInt(document.getElementById("input_Brightness").value),
+        cor: hexToRgbArray(document.getElementById("input_Color").value),
+        corFundo: hexToRgbArray(document.getElementById("input_Background").value),
+        tamanho: parseInt(document.getElementById("input_Text_Size").value),
+        ypos: parseInt(document.getElementById("input_Y_Position").value),
+        modo: document.getElementById("input_Mode").value,
+        velocidade: parseInt(document.getElementById("input_Scrolling_Speed").value)
+    };
+
+    client.publish("painel_led_test", JSON.stringify(payload));
+}
+
+function hexToRgbArray(hex) {
+    let bigint = parseInt(hex.replace("#",""), 16);
+    let r = (bigint >> 16) & 255;
+    let g = (bigint >> 8) & 255;
+    let b = bigint & 255;
+    return [r, g, b];
+}
+</script>
+
+</body>
 </html>
