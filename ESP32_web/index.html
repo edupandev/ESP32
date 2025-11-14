@@ -6,9 +6,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<!-- Leaflet Mapa -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+/* TELA DO MAPA EM TELA CHEIA */
+#map-screen {
+    display: none;
+    width: 100vw;
+    height: 100vh;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* PREVIEW 40×20 COM ZOOM 10x */
+#previewContainer {
+    width: 410px;
+    height: 110px;
+    border: 3px solid #000000;
+    background: rgb(61, 94, 61);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+#previewDisplay {
+    width: 400px;
+    height: 100px;
+    overflow: hidden;
+    position: relative;
+}
+
+#previewText {
+    position: absolute;
+    white-space: nowrap;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+@keyframes scroll20x40 {
+    0% { transform: translateX(400px); }
+    100% { transform: translateX(-800px); }
+}
+</style>
 </head>
 <body>
 
+<!-- TELA 0 – LOGIN -->
 <div id="login-screen" class="form-box">
   <h1>Login</h1>
   <label>Usuário:</label>
@@ -16,72 +68,74 @@
   <label>Senha:</label>
   <input type="password" id="login_pass" placeholder="Digite sua senha">
   <button class="myButton" onclick="fazerLogin()">Entrar</button>
-  <pre id="login_status"></pre>
 </div>
 
+<!-- TELA 1 – MAPA EM TELA CHEIA -->
+<div id="map-screen">
+  <div id="map"></div>
+</div>
+
+<!-- TELA 2 – CONFIGURAÇÃO DO DISPOSITIVO -->
 <div id="control-screen" class="form-box" style="display:none;">
-  <h1>Controle do Painel LED</h1>
-  
-  <h3>Dispositivos conectados:</h3>
-  <select id="deviceList">
-    <option value="">-- Selecione um dispositivo --</option>
-  </select>
+  <h1>Configuração: <span id="selectedDevice"></span></h1>
 
   <label>Texto:</label>
-  <input type="text" id="input_Scrolling_Text" maxlength="100" placeholder="Digite aqui...">
+  <input type="text" id="input_Scrolling_Text" maxlength="100" oninput="atualizarPreview()">
 
   <label>Textos pré-definidos:</label>
   <select id="preset_Texts" onchange="selecionarTexto()">
-    <option value="">-- Selecione um texto --</option>
+    <option value="">-- Selecione --</option>
     <option value="Bem-vindo!">Bem-vindo!</option>
     <option value="Perigo!">Perigo!</option>
-    <option value="Atencao no Volante">Atencao no Volante</option>
-    <option value="Nada de celular no transito">Nada de celular no transito</option>
-    <option value="Siga-nos nas redes sociais!">Siga-nos nas redes sociais!</option>
+    <option value="Atenção no Volante">Atenção no Volante</option>
   </select>
 
-  <label>Brilho (0-255):</label>
+  <label>Brilho:</label>
   <input type="number" id="input_Brightness" value="50" min="0" max="255">
 
   <label>Cor do Texto:</label>
-  <input type="color" id="input_Color" value="#FFFFFF">
+  <input type="color" id="input_Color" value="#FFFFFF" onchange="atualizarPreview()">
 
   <label>Cor de Fundo:</label>
-  <input type="color" id="input_Background" value="#000000">
+  <input type="color" id="input_Background" value="#000000" onchange="atualizarPreview()">
 
   <label>Tamanho:</label>
-  <select id="input_Text_Size">
+  <select id="input_Text_Size" onchange="atualizarPreview()">
     <option value="1">1</option>
     <option value="2" selected>2</option>
     <option value="3">3</option>
   </select>
 
-  <label>Y Pos:</label>
-  <select id="input_Y_Position">
-    <option value="0">0</option>
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="6">6</option>
-    <option value="7">7</option>
-    <option value="12">Centralizado</option>
+  <label>Posição Y:</label>
+  <select id="input_Y_Position" onchange="atualizarPreview()">
+    <option value="2">Topo</option>
+    <option value="6">Alto</option>
+    <option value="9">Centro</option>
+    <option value="13">Baixo</option>
+    <option value="16">Inferior</option>
   </select>
 
-  <label>Modo de Exibição:</label>
-  <select id="input_Mode">
+  <label>Modo:</label>
+  <select id="input_Mode" onchange="atualizarPreview()">
     <option value="scroll">Rolante</option>
     <option value="fixed">Fixo</option>
   </select>
 
-  <label>Velocidade (apenas rolante):</label>
-  <select id="input_Scrolling_Speed">
-    <option value="20">20</option>
+  <label>Velocidade:</label>
+  <select id="input_Scrolling_Speed" onchange="atualizarPreview()">
+    <option value="15">20</option>
     <option value="40">40</option>
     <option value="60">60</option>
   </select>
 
+  <h3>Preview 40×20</h3>
+  <div id="previewContainer">
+      <div id="previewDisplay">
+          <span id="previewText"></span>
+      </div>
+  </div>
+
   <button class="myButton" onclick="enviar()">Enviar</button>
-  <pre id="status"></pre>
 </div>
 
 <script>
@@ -89,76 +143,123 @@ let client = null;
 let meuUsuario = '';
 let minhaSenha = '';
 let dispositivos = {};
+let markers = {};
+let mapa = null;
+let dispositivoSelecionado = "";
 
+/* ===================================================
+   LOGIN → MOSTRAR MAPA EM TELA CHEIA
+=================================================== */
+function fazerLogin() {
+    meuUsuario = document.getElementById("login_user").value.trim();
+    minhaSenha = document.getElementById("login_pass").value.trim();
+
+    if (!meuUsuario || !minhaSenha) return;
+
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("map-screen").style.display = "block";
+
+    iniciarMapa();
+    conectarMQTT();
+}
+
+/* ===================================================
+                     MAPA
+=================================================== */
+function iniciarMapa() {
+    mapa = L.map('map').setView([-23.55, -46.63], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(mapa);
+}
+
+function atualizarMapa() {
+    for (let nome in dispositivos) {
+        if (!markers[nome]) {
+            let lat = dispositivos[nome].lat || -23.55 + Math.random()*0.02;
+            let lng = dispositivos[nome].lng || -46.63 + Math.random()*0.02;
+
+            markers[nome] = L.marker([lat, lng])
+                .addTo(mapa)
+                .bindPopup(`<b>${nome}</b><br>Clique para configurar`)
+                .on("click", () => abrirConfiguracao(nome));
+        }
+    }
+}
+
+function abrirConfiguracao(nome) {
+    dispositivoSelecionado = nome;
+
+    document.getElementById("map-screen").style.display = "none";
+    document.getElementById("control-screen").style.display = "block";
+    document.getElementById("selectedDevice").innerText = nome;
+}
+
+/* ===================================================
+                    MQTT
+=================================================== */
 function conectarMQTT() {
     client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-    client.on("connect", function() {
-        console.log("Conectado ao HiveMQ");
+
+    client.on("connect", () => {
         client.subscribe("painel_led_dispositivos");
-        client.subscribe("painel_led_status");
     });
-    client.on("message", function(topic, message) {
-        let msg = message.toString();
-        try {
-            let doc = JSON.parse(msg);
-            if(topic === "painel_led_dispositivos") {
-                if(doc.user === meuUsuario) {
-                    dispositivos[doc.name] = doc;
-                    atualizarListaDispositivos();
-                }
+
+    client.on("message", (topic, message) => {
+        if (topic === "painel_led_dispositivos") {
+            let doc = JSON.parse(message.toString());
+            if (doc.user === meuUsuario) {
+                dispositivos[doc.name] = doc;
+                atualizarMapa();
             }
-            if(topic === "painel_led_status") {
-                console.log("Status:", doc);
-            }
-        } catch(e) {
-            console.log("Mensagem não JSON:", msg);
         }
     });
 }
 
-function atualizarListaDispositivos() {
-    let sel = document.getElementById("deviceList");
-    sel.innerHTML = '<option value="">-- Selecione um dispositivo --</option>';
-    for(let d in dispositivos) {
-        sel.innerHTML += `<option value="${d}">${d}</option>`;
+/* ===================================================
+                 PREVIEW
+=================================================== */
+function atualizarPreview() {
+    const txt = document.getElementById("input_Scrolling_Text").value;
+    const cor = document.getElementById("input_Color").value;
+    const fundo = document.getElementById("input_Background").value;
+    const tam = parseInt(document.getElementById("input_Text_Size").value);
+    const modo = document.getElementById("input_Mode").value;
+    const vel = parseInt(document.getElementById("input_Scrolling_Speed").value);
+    const ypos = parseInt(document.getElementById("input_Y_Position").value);
+
+    const previewText = document.getElementById("previewText");
+    const preview = document.getElementById("previewDisplay");
+
+    preview.style.background = fundo;
+    previewText.style.color = cor;
+    previewText.textContent = txt;
+
+    previewText.style.fontSize = (tam === 1 ? 12 : tam === 2 ? 18 : 26) + "px";
+    previewText.style.top = (ypos * 10) + "px";
+
+    previewText.style.animation = "none";
+    if (modo === "scroll") {
+        previewText.style.animation = `scroll20x40 ${vel/8}s linear infinite`;
     }
 }
 
-function fazerLogin() {
-    meuUsuario = document.getElementById("login_user").value.trim();
-    minhaSenha = document.getElementById("login_pass").value.trim();
-    if(meuUsuario && minhaSenha) {
-        document.getElementById("login-screen").style.display = "none";
-        document.getElementById("control-screen").style.display = "block";
-        conectarMQTT();
-    } else {
-        document.getElementById("login_status").textContent = "Informe usuário e senha!";
-    }
-}
-
-function selecionarTexto() {
-    const select = document.getElementById("preset_Texts");
-    const textoSelecionado = select.value;
-    if (textoSelecionado) {
-        document.getElementById("input_Scrolling_Text").value = textoSelecionado;
-    }
-}
-
+/* ===================================================
+                 ENVIAR
+=================================================== */
 function enviar() {
-    let device = document.getElementById("deviceList").value;
-    if(!device) {
-        alert("Selecione um dispositivo!");
-        return;
-    }
+    if (!dispositivoSelecionado)
+        return alert("Nenhum dispositivo selecionado!");
 
     let payload = {
-        destino: device,
+        destino: dispositivoSelecionado,
         user: meuUsuario,
         pass: minhaSenha,
         texto: document.getElementById("input_Scrolling_Text").value,
         brilho: parseInt(document.getElementById("input_Brightness").value),
-        cor: hexToRgbArray(document.getElementById("input_Color").value),
-        corFundo: hexToRgbArray(document.getElementById("input_Background").value),
+        cor: hexToRgb(document.getElementById("input_Color").value),
+        corFundo: hexToRgb(document.getElementById("input_Background").value),
         tamanho: parseInt(document.getElementById("input_Text_Size").value),
         ypos: parseInt(document.getElementById("input_Y_Position").value),
         modo: document.getElementById("input_Mode").value,
@@ -168,14 +269,10 @@ function enviar() {
     client.publish("painel_led_test", JSON.stringify(payload));
 }
 
-function hexToRgbArray(hex) {
-    let bigint = parseInt(hex.replace("#",""), 16);
-    let r = (bigint >> 16) & 255;
-    let g = (bigint >> 8) & 255;
-    let b = bigint & 255;
-    return [r, g, b];
+function hexToRgb(hex) {
+    let num = parseInt(hex.replace("#", ""), 16);
+    return [(num>>16)&255, (num>>8)&255, num&255];
 }
 </script>
-
 </body>
 </html>
