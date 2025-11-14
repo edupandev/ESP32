@@ -12,83 +12,42 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-/* TELA DO MAPA EM TELA CHEIA */
 #map-screen {
     display: none;
     width: 100vw;
     height: 100vh;
 }
-
 #map {
     width: 100%;
     height: 100%;
-}
-
-/* PREVIEW 40×20 COM ZOOM 10x */
-#previewContainer {
-    width: 410px;
-    height: 110px;
-    border: 3px solid #000000;
-    background: rgb(61, 94, 61);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 10px;
-    overflow: hidden;
-    position: relative;
-}
-
-#previewDisplay {
-    width: 400px;
-    height: 100px;
-    overflow: hidden;
-    position: relative;
-}
-
-#previewText {
-    position: absolute;
-    white-space: nowrap;
-    font-family: monospace;
-    font-weight: bold;
-}
-
-@keyframes scroll20x40 {
-    0% { transform: translateX(400px); }
-    100% { transform: translateX(-800px); }
 }
 </style>
 </head>
 <body>
 
-<!-- TELA 0 – LOGIN -->
+<!-- LOGIN -->
 <div id="login-screen" class="form-box">
   <h1>Login</h1>
   <label>Usuário:</label>
   <input type="text" id="login_user" placeholder="Digite seu usuário">
+
   <label>Senha:</label>
   <input type="password" id="login_pass" placeholder="Digite sua senha">
+
   <button class="myButton" onclick="fazerLogin()">Entrar</button>
 </div>
 
-<!-- TELA 1 – MAPA EM TELA CHEIA -->
+<!-- MAPA -->
 <div id="map-screen">
   <div id="map"></div>
 </div>
 
-<!-- TELA 2 – CONFIGURAÇÃO DO DISPOSITIVO -->
+<!-- CONFIGURAÇÃO -->
 <div id="control-screen" class="form-box" style="display:none;">
   <h1>Configuração: <span id="selectedDevice"></span></h1>
 
   <label>Texto:</label>
   <input type="text" id="input_Scrolling_Text" maxlength="100" oninput="atualizarPreview()">
-
-  <label>Textos pré-definidos:</label>
-  <select id="preset_Texts" onchange="selecionarTexto()">
-    <option value="">-- Selecione --</option>
-    <option value="Bem-vindo!">Bem-vindo!</option>
-    <option value="Perigo!">Perigo!</option>
-    <option value="Atenção no Volante">Atenção no Volante</option>
-  </select>
 
   <label>Brilho:</label>
   <input type="number" id="input_Brightness" value="50" min="0" max="255">
@@ -101,18 +60,18 @@
 
   <label>Tamanho:</label>
   <select id="input_Text_Size" onchange="atualizarPreview()">
-    <option value="1">1</option>
-    <option value="2" selected>2</option>
-    <option value="3">3</option>
+    <option value="1" selected>Arial7</option>
+    <option value="2">Arial8</option>
+    <option value="3">Arial9</option>
   </select>
 
   <label>Posição Y:</label>
   <select id="input_Y_Position" onchange="atualizarPreview()">
-    <option value="2">Topo</option>
-    <option value="6">Alto</option>
-    <option value="9">Centro</option>
-    <option value="13">Baixo</option>
-    <option value="16">Inferior</option>
+    <option value="0">0</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="7">7</option>
   </select>
 
   <label>Modo:</label>
@@ -144,12 +103,23 @@ let meuUsuario = '';
 let minhaSenha = '';
 let dispositivos = {};
 let markers = {};
+let lastUpdate = {};
 let mapa = null;
 let dispositivoSelecionado = "";
 
-/* ===================================================
-   LOGIN → MOSTRAR MAPA EM TELA CHEIA
-=================================================== */
+/* ÍCONES ONLINE/OFFLINE */
+const iconOnline = L.icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+const iconOffline = L.icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+
+/* LOGIN */
 function fazerLogin() {
     meuUsuario = document.getElementById("login_user").value.trim();
     minhaSenha = document.getElementById("login_pass").value.trim();
@@ -159,46 +129,51 @@ function fazerLogin() {
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("map-screen").style.display = "block";
 
-    iniciarMapa();
+    setTimeout(() => iniciarMapa(), 100); // CORREÇÃO
     conectarMQTT();
 }
 
-/* ===================================================
-                     MAPA
-=================================================== */
+/* MAPA */
 function iniciarMapa() {
-    mapa = L.map('map').setView([-23.55, -46.63], 12);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(mapa);
+    mapa = L.map('map').setView([-15.78, -47.93], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapa);
 }
 
 function atualizarMapa() {
-    for (let nome in dispositivos) {
-        if (!markers[nome]) {
-            let lat = dispositivos[nome].lat || -23.55 + Math.random()*0.02;
-            let lng = dispositivos[nome].lng || -46.63 + Math.random()*0.02;
+    const agora = Date.now();
 
-            markers[nome] = L.marker([lat, lng])
-                .addTo(mapa)
-                .bindPopup(`<b>${nome}</b><br>Clique para configurar`)
-                .on("click", () => abrirConfiguracao(nome));
+    for (let nome in dispositivos) {
+        let d = dispositivos[nome];
+
+        if (!d.lat || !d.lng) continue;
+
+        const online = (agora - lastUpdate[nome] < 30000);
+        const pos = [d.lat, d.lng];
+
+        if (!markers[nome]) {
+            markers[nome] = L.marker(pos, {
+                icon: online ? iconOnline : iconOffline
+            })
+            .addTo(mapa)
+            .on("click", () => abrirConfiguracao(nome))
+            .bindPopup(`<b>${nome}</b><br>${online ? "🟢 Online" : "🔴 Offline"}`);
+        } else {
+            markers[nome].setLatLng(pos);
+            markers[nome].setIcon(online ? iconOnline : iconOffline);
+            markers[nome].setPopupContent(`<b>${nome}</b><br>${online ? "🟢 Online" : "🔴 Offline"}`);
         }
     }
 }
 
+/* ABRIR CONFIGURAÇÃO */
 function abrirConfiguracao(nome) {
     dispositivoSelecionado = nome;
-
     document.getElementById("map-screen").style.display = "none";
     document.getElementById("control-screen").style.display = "block";
     document.getElementById("selectedDevice").innerText = nome;
 }
 
-/* ===================================================
-                    MQTT
-=================================================== */
+/* MQTT */
 function conectarMQTT() {
     client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
@@ -207,47 +182,37 @@ function conectarMQTT() {
     });
 
     client.on("message", (topic, message) => {
-        if (topic === "painel_led_dispositivos") {
-            let doc = JSON.parse(message.toString());
-            if (doc.user === meuUsuario) {
-                dispositivos[doc.name] = doc;
-                atualizarMapa();
-            }
-        }
+        if (topic !== "painel_led_dispositivos") return;
+
+        let doc = JSON.parse(message.toString());
+
+        if (doc.user !== meuUsuario) return;
+
+        dispositivos[doc.name] = doc;
+        lastUpdate[doc.name] = Date.now();
+
+        atualizarMapa();
     });
+
+    setInterval(atualizarMapa, 5000);
 }
 
-/* ===================================================
-                 PREVIEW
-=================================================== */
+/* PREVIEW */
 function atualizarPreview() {
-    const txt = document.getElementById("input_Scrolling_Text").value;
-    const cor = document.getElementById("input_Color").value;
-    const fundo = document.getElementById("input_Background").value;
-    const tam = parseInt(document.getElementById("input_Text_Size").value);
-    const modo = document.getElementById("input_Mode").value;
-    const vel = parseInt(document.getElementById("input_Scrolling_Speed").value);
-    const ypos = parseInt(document.getElementById("input_Y_Position").value);
+    const preview = document.getElementById("previewText");
+    const box = document.getElementById("previewDisplay");
 
-    const previewText = document.getElementById("previewText");
-    const preview = document.getElementById("previewDisplay");
+    preview.style.color = input_Color.value;
+    box.style.background = input_Background.value;
+    preview.textContent = input_Scrolling_Text.value;
 
-    preview.style.background = fundo;
-    previewText.style.color = cor;
-    previewText.textContent = txt;
+    preview.style.fontSize =
+        (input_Text_Size.value == 1 ? 12 : input_Text_Size.value == 2 ? 18 : 26) + "px";
 
-    previewText.style.fontSize = (tam === 1 ? 12 : tam === 2 ? 18 : 26) + "px";
-    previewText.style.top = (ypos * 10) + "px";
-
-    previewText.style.animation = "none";
-    if (modo === "scroll") {
-        previewText.style.animation = `scroll20x40 ${vel/8}s linear infinite`;
-    }
+    preview.style.top = (input_Y_Position.value * 10) + "px";
 }
 
-/* ===================================================
-                 ENVIAR
-=================================================== */
+/* ENVIAR */
 function enviar() {
     if (!dispositivoSelecionado)
         return alert("Nenhum dispositivo selecionado!");
@@ -256,14 +221,14 @@ function enviar() {
         destino: dispositivoSelecionado,
         user: meuUsuario,
         pass: minhaSenha,
-        texto: document.getElementById("input_Scrolling_Text").value,
-        brilho: parseInt(document.getElementById("input_Brightness").value),
-        cor: hexToRgb(document.getElementById("input_Color").value),
-        corFundo: hexToRgb(document.getElementById("input_Background").value),
-        tamanho: parseInt(document.getElementById("input_Text_Size").value),
-        ypos: parseInt(document.getElementById("input_Y_Position").value),
-        modo: document.getElementById("input_Mode").value,
-        velocidade: parseInt(document.getElementById("input_Scrolling_Speed").value)
+        texto: input_Scrolling_Text.value,
+        brilho: parseInt(input_Brightness.value),
+        cor: hexToRgb(input_Color.value),
+        corFundo: hexToRgb(input_Background.value),
+        tamanho: parseInt(input_Text_Size.value),
+        ypos: parseInt(input_Y_Position.value),
+        modo: input_Mode.value,
+        velocidade: parseInt(input_Scrolling_Speed.value)
     };
 
     client.publish("painel_led_test", JSON.stringify(payload));
@@ -274,5 +239,6 @@ function hexToRgb(hex) {
     return [(num>>16)&255, (num>>8)&255, num&255];
 }
 </script>
+
 </body>
 </html>
