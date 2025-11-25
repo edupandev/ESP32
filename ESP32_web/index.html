@@ -206,29 +206,51 @@ function abrirConfiguracao() {
 ============================================================ */
 const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
+// último momento que o ESP enviou algo
+let ultimoOnline = 0;
+
 client.on("connect", () => {
     console.log("MQTT conectado");
+
     client.subscribe("painel/localizacao");
+    client.subscribe("painel_led_status");
+    client.subscribe("painel_led_dispositivos");
+    client.subscribe("painel_led_test");
 });
 
 client.on("message", (topic, message) => {
-    let data = JSON.parse(message.toString());
+    console.log("📩 Recebido:", topic, message.toString());
 
-    if (!data.lat || !data.lng) return;
+    let data;
+    try {
+        data = JSON.parse(message.toString());
+    } catch {
+        return;
+    }
 
-    ultimoPonto = { lat: data.lat, lng: data.lng };
+    // sempre que qualquer mensagem do ESP chegar → está online
     dispositivoOnline = true;
+    ultimoOnline = Date.now();
 
-    marcador.setLatLng([data.lat, data.lng]);
-    marcador._icon.classList.remove("marker-offline");
+    // tira o cinza do marcador
+    marcador._icon?.classList.remove("marker-offline");
+
+    // se veio lat/lng → atualiza o ponto
+    if (typeof data.lat === "number" && typeof data.lng === "number") {
+        ultimoPonto = { lat: data.lat, lng: data.lng };
+        marcador.setLatLng([data.lat, data.lng]);
+    }
 });
 
+// verifica offline a cada 5s
 setInterval(() => {
-    if (!dispositivoOnline) {
-        marcador._icon.classList.add("marker-offline");
+    if (Date.now() - ultimoOnline > 7000) {
+        dispositivoOnline = false;
+        marcador._icon?.classList.add("marker-offline");
     }
-    dispositivoOnline = false;
-}, 8000);
+}, 5000);
+
+
 
 /* ============================================================
                         PREVIEW
@@ -261,8 +283,29 @@ function atualizarPreview() {
                         ENVIAR MQTT
 ============================================================ */
 function enviar() {
-    alert("Mensagem enviada! (implementar payload depois)");
+    const payload = {
+        destino: "Direita-PMV",
+        user: "geral3",
+        texto: document.getElementById("input_Scrolling_Text").value,
+        brilho: Number(document.getElementById("input_Brightness").value),
+        cor: hexToRgb(document.getElementById("input_Color").value),
+        corFundo: hexToRgb(document.getElementById("input_Background").value),
+        tamanho: Number(document.getElementById("input_Text_Size").value),
+        ypos: Number(document.getElementById("input_Y_Position").value),
+        modo: document.getElementById("input_Mode").value,
+        velocidade: Number(document.getElementById("input_Scrolling_Speed").value)
+    };
+
+    client.publish("painel_led_test", JSON.stringify(payload));
+    alert("Mensagem enviada ao ESP!");
 }
+
+// converte #RRGGBB → [r,g,b]
+function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 
 /* INIT */
 window.onload = initMap;
