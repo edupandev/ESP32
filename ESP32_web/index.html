@@ -1,315 +1,229 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Controle Painel LED via MQTT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <meta charset="UTF-8">
+    <title>SACC - Controle PMV Avançado</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root { --primary: #007bff; --bg: #f4f7f9; --dark: #1a1a1a; --success: #4cd964; --danger: #ff3b30; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); overflow: hidden; }
+        
+        #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        
+        #map { width: 100%; height: 100vh; }
+        #control-panel { display: none; position: fixed; right: 0; top: 0; width: 400px; height: 100vh; background: white; z-index: 1000; padding: 20px; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto; }
+        
+        .status-card { background: var(--dark); color: white; padding: 15px; border-radius: 10px; display: flex; align-items: center; margin-bottom: 15px; }
+        .semaforo-visual { display: flex; flex-direction: column; gap: 5px; background: #000; padding: 8px; border-radius: 10px; margin-right: 15px; }
+        .luz { width: 18px; height: 18px; border-radius: 50%; background: #333; transition: 0.3s; }
+        .luz-red.ativo { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+        .luz-green.ativo { background: var(--success); box-shadow: 0 0 10px var(--success); }
 
-<!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="style.css">
+        /* Preview Dinâmico */
+        #preview-box { 
+            width: 100%; height: 80px; background: #000; border-radius: 8px; 
+            margin: 10px 0; display: flex; border: 2px solid #333; 
+            position: relative; overflow: hidden; 
+        }
+        #preview-content { 
+            width: 100%; display: flex; flex-direction: column; padding: 5px; 
+            font-weight: bold; font-family: 'Arial', sans-serif; 
+            transition: all 0.2s; box-sizing: border-box;
+        }
 
-<style>
-/* ============================
-   SEU CSS ORIGINAL
-   
-============================= */
+        /* Animação Scroll */
+        @keyframes scrollText {
+            from { transform: translateX(100%); }
+            to { transform: translateX(-100%); }
+        }
+        .scroll-active { 
+            animation: scrollText 5s linear infinite; 
+            white-space: nowrap;
+            display: block !important;
+            width: max-content !important;
+        }
 
-
-/* TELA DO MAPA EM TELA CHEIA */
-#map-screen {
-    display: none;
-    width: 100vw;
-    height: 100vh;
-}
-
-#map {
-    width: 100%;
-    height: 100%;
-}
-
-/* PREVIEW 40×20 */
-#previewContainer {
-    width: 410px;
-    height: 110px;
-    border: 3px solid #000000;
-    background: rgb(61, 94, 61);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 10px;
-    overflow: hidden;
-    position: relative;
-}
-
-#previewDisplay {
-    width: 400px;
-    height: 100px;
-    overflow: hidden;
-    position: relative;
-}
-
-#previewText {
-    position: absolute;
-    white-space: nowrap;
-    font-family: monospace;
-    font-weight: bold;
-}
-
-@keyframes scroll20x40 {
-    0% { transform: translateX(400px); }
-    100% { transform: translateX(-800px); }
-}
-
-/* MARCADOR OFFLINE */
-.marker-offline {
-    filter: grayscale(100%) brightness(60%);
-}
-
-.form-box {
-    padding: 20px;
-}
-.myButton {
-    padding: 8px 18px;
-    background: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-</style>
+        .section-title { font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; margin-top: 20px; border-bottom: 1px solid #eee; }
+        label { display: block; font-size: 11px; font-weight: bold; margin: 10px 0 4px; color: #555; }
+        textarea, input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; margin-top: 15px; }
+        .state-btn { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center; background: #f9f9f9; transition: 0.2s; }
+        .active-red { border-color: var(--danger); color: var(--danger); background: #fff5f5; }
+        .active-green { border-color: var(--success); color: var(--success); background: #f5fff6; }
+    </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen" class="form-box">
-  <h1>Login</h1>
-  <label>Usuário:</label>
-  <input type="text" id="login_user" placeholder="Digite seu usuário">
-  <label>Senha:</label>
-  <input type="password" id="login_pass" placeholder="Digite sua senha">
-  <button class="myButton" onclick="fazerLogin()">Entrar</button>
+<div id="login-screen">
+    <div class="login-box">
+        <h2>SACC <strong>LOGIN</strong></h2>
+        <input type="text" id="user" placeholder="Usuário" value="geral3">
+        <input type="password" id="pass" placeholder="Senha" value="123">
+        <button class="btn" onclick="logar()">ENTRAR</button>
+    </div>
 </div>
 
-<!-- MAPA -->
-<div id="map-screen">
-  <div id="map"></div>
-</div>
+<div id="map"></div>
 
-<!-- CONFIGURAÇÃO DO DISPOSITIVO -->
-<div id="control-screen" class="form-box" style="display:none;">
-  <h1>Configuração: <span id="selectedDevice"></span></h1>
+<div id="control-panel">
+    <div class="status-card">
+        <div class="semaforo-visual">
+            <div id="webRed" class="luz luz-red"></div>
+            <div id="webGreen" class="luz luz-green"></div>
+        </div>
+        <div>
+            <div style="font-size: 10px; opacity: 0.6;">HARDWARE STATUS</div>
+            <div id="statusTxt" style="font-weight: bold;">AGUARDANDO...</div>
+        </div>
+    </div>
 
-  <label>Texto:</label>
-  <input type="text" id="input_Scrolling_Text" oninput="atualizarPreview()">
+    <div class="section-title">Preview (Simulação)</div>
+    <div id="preview-box">
+        <div id="preview-content"></div>
+    </div>
 
-  <label>Brilho:</label>
-  <input type="number" id="input_Brightness" value="50" min="0" max="255">
+    <div class="section-title">Comando</div>
+    <div class="grid" style="margin-top:10px;">
+        <div id="btnRed" class="state-btn active-red" onclick="selectState('red')">VERMELHO</div>
+        <div id="btnGreen" class="state-btn" onclick="selectState('green')">VERDE</div>
+    </div>
 
-  <label>Cor do Texto:</label>
-  <input type="color" id="input_Color" value="#FFFFFF" onchange="atualizarPreview()">
+    <label>Texto (use Enter para pular linha no Fixo)</label>
+    <textarea id="msgInput" rows="3" oninput="upPrev()">PARE&#10;AGORA</textarea>
 
-  <label>Cor de Fundo:</label>
-  <input type="color" id="input_Background" value="#000000" onchange="atualizarPreview()">
+    <div class="grid">
+        <div><label>Modo</label>
+            <select id="modoExibicao" onchange="upPrev()">
+                <option value="fixed">Fixo</option>
+                <option value="slide" selected>Slide</option>
+                <option value="scroll">Scroll</option>
+            </select>
+        </div>
+        <div><label>Tamanho</label>
+            <select id="fSize" onchange="upPrev()">
+                <option value="1">Pequeno</option>
+                <option value="2" selected>Médio</option>
+                <option value="3">Grande</option>
+            </select>
+        </div>
+    </div>
 
-  <label>Tamanho:</label>
-  <select id="input_Text_Size" onchange="atualizarPreview()">
-    <option value="1">1</option>
-    <option value="2" selected>2</option>
-    <option value="3">3</option>
-  </select>
+    <div class="grid">
+        <div><label>Cor Texto</label><input type="color" id="tColor" value="#ffffff" onchange="upPrev()"></div>
+        <div><label>Cor Fundo</label><input type="color" id="bgColor" value="#000000" onchange="upPrev()"></div>
+    </div>
 
-  <label>Posição Y:</label>
-  <select id="input_Y_Position" onchange="atualizarPreview()">
-    <option value="2">Topo</option>
-    <option value="6">Alto</option>
-    <option value="9">Centro</option>
-    <option value="13">Baixo</option>
-    <option value="16">Inferior</option>
-  </select>
+    <div class="grid">
+        <div><label>Alinhamento H</label><select id="aliH" onchange="upPrev()"><option value="center">Centro</option><option value="left">Esquerda</option><option value="right">Direita</option></select></div>
+        <div><label>Alinhamento V</label><select id="aliV" onchange="upPrev()"><option value="middle">Meio</option><option value="top">Cima</option><option value="bottom">Baixo</option></select></div>
+    </div>
 
-  <label>Modo:</label>
-  <select id="input_Mode" onchange="atualizarPreview()">
-    <option value="scroll">Rolante</option>
-    <option value="fixed">Fixo</option>
-  </select>
+    <label>Velocidade (ms)</label>
+    <input type="number" id="speed" value="2000" step="100" oninput="upPrev()">
 
-  <label>Velocidade:</label>
-  <select id="input_Scrolling_Speed" onchange="atualizarPreview()">
-    <option value="15">20</option>
-    <option value="40">40</option>
-    <option value="60">60</option>
-  </select>
-
-  <h3>Preview 40×20</h3>
-  <div id="previewContainer">
-      <div id="previewDisplay">
-          <span id="previewText"></span>
-      </div>
-  </div>
-
-  <button class="myButton" onclick="enviar()">Enviar</button>
+    <button class="btn" onclick="enviar()">APLICAR AO PAINEL</button>
 </div>
 
 <script>
-let map;
-let marcador;
-let dispositivoOnline = false;
-let dispositivoSelecionado = "";
+    let curState = 'red';
+    let sIdx = 0;
+    let sTmr;
+    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
-// posição padrão
-let ultimoPonto = { lat: -23.6293, lng: -46.6351 };
-
-/* ============================================================
-                    LOGIN → Mapa
-============================================================ */
-function fazerLogin() {
-    let u = document.getElementById("login_user").value.trim();
-    let s = document.getElementById("login_pass").value.trim();
-    if (!u || !s) return;
-
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("map-screen").style.display = "block";
-}
-
-/* ============================================================
-                         MAPA
-============================================================ */
-function initMap() {
-
-    map = L.map('map').setView([ultimoPonto.lat, ultimoPonto.lng], 15);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(map);
-
-    marcador = L.marker([ultimoPonto.lat, ultimoPonto.lng]).addTo(map);
-
-    marcador.on("click", () => {
-        if (!dispositivoOnline) {
-            alert("❌ O dispositivo está OFFLINE.\nNão é possível abrir as configurações.");
-            return;
-        }
-        abrirConfiguracao();
+    client.on('connect', () => client.subscribe("painel_led_status"));
+    client.on('message', (t, m) => {
+        const data = JSON.parse(m.toString());
+        document.getElementById('webRed').classList.toggle('ativo', data.vermelho);
+        document.getElementById('webGreen').classList.toggle('ativo', data.verde);
+        document.getElementById('statusTxt').innerText = data.vermelho ? "SINAL VERMELHO" : "SINAL VERDE";
     });
-}
 
-function abrirConfiguracao() {
-    document.getElementById("map-screen").style.display = "none";
-    document.getElementById("control-screen").style.display = "block";
-    document.getElementById("selectedDevice").innerText = "Painel LED";
-}
-
-/* ============================================================
-                         MQTT
-============================================================ */
-const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
-// último momento que o ESP enviou algo
-let ultimoOnline = 0;
-
-client.on("connect", () => {
-    console.log("MQTT conectado");
-
-    client.subscribe("painel/localizacao");
-    client.subscribe("painel_led_status");
-    client.subscribe("painel_led_dispositivos");
-    client.subscribe("painel_led_test");
-});
-
-client.on("message", (topic, message) => {
-    console.log("📩 Recebido:", topic, message.toString());
-
-    let data;
-    try {
-        data = JSON.parse(message.toString());
-    } catch {
-        return;
+    function logar() {
+        if(document.getElementById('user').value === "geral3" && document.getElementById('pass').value === "123") {
+            document.getElementById('login-screen').style.display = 'none';
+            initMap();
+            upPrev();
+        }
     }
 
-    // sempre que qualquer mensagem do ESP chegar → está online
-    dispositivoOnline = true;
-    ultimoOnline = Date.now();
-
-    // tira o cinza do marcador
-    marcador._icon?.classList.remove("marker-offline");
-
-    // se veio lat/lng → atualiza o ponto
-    if (typeof data.lat === "number" && typeof data.lng === "number") {
-        ultimoPonto = { lat: data.lat, lng: data.lng };
-        marcador.setLatLng([data.lat, data.lng]);
+    function initMap() {
+        const map = L.map('map', {zoomControl: false}).setView([-23.6293, -46.6351], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+        L.marker([-23.6293, -46.6351]).addTo(map).on('click', () => document.getElementById('control-panel').style.display='block');
     }
-});
 
-// verifica offline a cada 5s
-setInterval(() => {
-    if (Date.now() - ultimoOnline > 7000) {
-        dispositivoOnline = false;
-        marcador._icon?.classList.add("marker-offline");
+    function upPrev() {
+        const rawText = document.getElementById('msgInput').value;
+        const lines = rawText.split('\n').filter(x => x.length >= 0);
+        const box = document.getElementById('preview-box');
+        const content = document.getElementById('preview-content');
+        const modo = document.getElementById('modoExibicao').value;
+        const size = document.getElementById('fSize').value;
+
+        box.style.background = document.getElementById('bgColor').value;
+        content.style.color = document.getElementById('tColor').value;
+        const sizes = { "1": "12px", "2": "18px", "3": "26px" };
+        content.style.fontSize = sizes[size];
+
+        content.classList.remove('scroll-active');
+        content.style.animation = 'none';
+
+        // Alinhamentos
+        const h = document.getElementById('aliH').value;
+        content.style.alignItems = h==='center'?'center':(h==='right'?'flex-end':'flex-start');
+        content.style.textAlign = h;
+        
+        const v = document.getElementById('aliV').value;
+        content.style.justifyContent = v==='middle'?'center':(v==='bottom'?'flex-end':'flex-start');
+        
+        clearInterval(sTmr);
+
+        if (modo === "scroll") {
+            content.classList.add('scroll-active');
+            content.innerHTML = rawText.replace(/\n/g, ' &nbsp; '); 
+            content.style.animation = `scrollText ${document.getElementById('speed').value / 1000}s linear infinite`;
+        } else if (modo === "slide" && lines.length > 1) {
+            const renderLine = (idx) => {
+                content.innerHTML = lines[idx].replace(/\n/g, '<br>');
+            };
+            sTmr = setInterval(() => { 
+                sIdx = (sIdx+1)%lines.length; 
+                renderLine(sIdx);
+            }, document.getElementById('speed').value);
+            renderLine(0);
+        } else {
+            // Fixo: Mantém as quebras de linha visíveis
+            content.innerHTML = rawText.replace(/\n/g, '<br>');
+        }
     }
-}, 5000);
 
+    function selectState(s) {
+        curState = s;
+        document.getElementById('btnRed').classList.toggle('active-red', s==='red');
+        document.getElementById('btnGreen').classList.toggle('active-green', s==='green');
+        upPrev();
+    }
 
+    function hex(h) { const n = parseInt(h.slice(1), 16); return [(n>>16)&255, (n>>8)&255, n&255]; }
 
-/* ============================================================
-                        PREVIEW
-============================================================ */
-function atualizarPreview() {
-    const txt = document.getElementById("input_Scrolling_Text").value;
-    const cor = document.getElementById("input_Color").value;
-    const fundo = document.getElementById("input_Background").value;
-    const tam = document.getElementById("input_Text_Size").value;
-    const modo = document.getElementById("input_Mode").value;
-    const vel = document.getElementById("input_Scrolling_Speed").value;
-    const ypos = document.getElementById("input_Y_Position").value;
-
-    const previewText = document.getElementById("previewText");
-    const preview = document.getElementById("previewDisplay");
-
-    preview.style.background = fundo;
-    previewText.style.color = cor;
-    previewText.textContent = txt;
-
-    previewText.style.fontSize = (tam == 1 ? 12 : tam == 2 ? 18 : 26) + "px";
-    previewText.style.top = (ypos * 2) + "px";
-
-    previewText.style.animation = "none";
-    if (modo === "scroll")
-        previewText.style.animation = `scroll20x40 ${vel/8}s linear infinite`;
-}
-
-/* ============================================================
-                        ENVIAR MQTT
-============================================================ */
-function enviar() {
-    const payload = {
-        destino: "Direita-PMV",
-        user: "geral3",
-        texto: document.getElementById("input_Scrolling_Text").value,
-        brilho: Number(document.getElementById("input_Brightness").value),
-        cor: hexToRgb(document.getElementById("input_Color").value),
-        corFundo: hexToRgb(document.getElementById("input_Background").value),
-        tamanho: Number(document.getElementById("input_Text_Size").value),
-        ypos: Number(document.getElementById("input_Y_Position").value),
-        modo: document.getElementById("input_Mode").value,
-        velocidade: Number(document.getElementById("input_Scrolling_Speed").value)
-    };
-
-    client.publish("painel_led_test", JSON.stringify(payload));
-    alert("Mensagem enviada ao ESP!");
-}
-
-// converte #RRGGBB → [r,g,b]
-function hexToRgb(hex) {
-    const n = parseInt(hex.slice(1), 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-
-/* INIT */
-window.onload = initMap;
+    function enviar() {
+        const payload = {
+            alerta: (curState==='red'),
+            modo: document.getElementById('modoExibicao').value,
+            mensagens: document.getElementById('msgInput').value.split('\n').filter(x=>x.length>0),
+            tamanho: parseInt(document.getElementById('fSize').value),
+            cor: hex(document.getElementById('tColor').value),
+            corFundo: hex(document.getElementById('bgColor').value),
+            velocidade: parseInt(document.getElementById('speed').value),
+            aliH: document.getElementById('aliH').value,
+            aliV: document.getElementById('aliV').value
+        };
+        client.publish("painel_led_test", JSON.stringify(payload));
+    }
 </script>
-
 </body>
 </html>
