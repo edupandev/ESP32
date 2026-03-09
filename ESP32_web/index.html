@@ -2,109 +2,67 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>SACC - Controle PMV Avançado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SACC - Controle Individual PMV</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        :root { --primary: #007bff; --bg: #f4f7f9; --dark: #1a1a1a; --success: #4cd964; --danger: #ff3b30; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); overflow: hidden; }
-        
-        #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
-        
-        #map { width: 100%; height: 100vh; }
-        #control-panel { display: none; position: fixed; right: 0; top: 0; width: 400px; height: 100vh; background: white; z-index: 1000; padding: 20px; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto; }
-        
-        .status-card { background: var(--dark); color: white; padding: 15px; border-radius: 10px; display: flex; align-items: center; margin-bottom: 15px; }
-        .semaforo-visual { display: flex; flex-direction: column; gap: 5px; background: #000; padding: 8px; border-radius: 10px; margin-right: 15px; }
-        .luz { width: 18px; height: 18px; border-radius: 50%; background: #333; transition: 0.3s; }
-        .luz-red.ativo { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-        .luz-green.ativo { background: var(--success); box-shadow: 0 0 10px var(--success); }
-
-        /* Preview Dinâmico */
-        #preview-box { 
-            width: 100%; height: 80px; background: #000; border-radius: 8px; 
-            margin: 10px 0; display: flex; border: 2px solid #333; 
-            position: relative; overflow: hidden; 
-        }
-        #preview-content { 
-            width: 100%; display: flex; flex-direction: column; padding: 5px; 
-            font-weight: bold; font-family: 'Arial', sans-serif; 
-            transition: all 0.2s; box-sizing: border-box;
-        }
-
-        /* Animação Scroll */
-        @keyframes scrollText {
-            from { transform: translateX(100%); }
-            to { transform: translateX(-100%); }
-        }
-        .scroll-active { 
-            animation: scrollText 5s linear infinite; 
-            white-space: nowrap;
-            display: block !important;
-            width: max-content !important;
-        }
-
-        .section-title { font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; margin-top: 20px; border-bottom: 1px solid #eee; }
-        label { display: block; font-size: 11px; font-weight: bold; margin: 10px 0 4px; color: #555; }
-        textarea, input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; margin-top: 15px; }
-        .state-btn { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center; background: #f9f9f9; transition: 0.2s; }
-        .active-red { border-color: var(--danger); color: var(--danger); background: #fff5f5; }
-        .active-green { border-color: var(--success); color: var(--success); background: #f5fff6; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="login-screen">
     <div class="login-box">
         <h2>SACC <strong>LOGIN</strong></h2>
-        <input type="text" id="user" placeholder="Usuário" value="geral3">
-        <input type="password" id="pass" placeholder="Senha" value="123">
-        <button class="btn" onclick="logar()">ENTRAR</button>
+        <input type="text" id="user" placeholder="Usuário">
+        <input type="password" id="pass" placeholder="Senha" style="margin-top:10px">
+        <button id="btnLogin" class="btn" onclick="logar()">ENTRAR</button>
     </div>
 </div>
 
 <div id="map"></div>
 
 <div id="control-panel">
-    <div class="status-card">
+    <button class="close-btn" onclick="fecharPainel()">×</button>
+    
+    <div class="status-card" style="margin-top: 20px;">
         <div class="semaforo-visual">
-            <div id="webRed" class="luz luz-red"></div>
-            <div id="webGreen" class="luz luz-green"></div>
+            <div id="ledRed" class="luz luz-red"></div>
+            <div id="ledGreen" class="luz luz-green"></div>
         </div>
         <div>
-            <div style="font-size: 10px; opacity: 0.6;">HARDWARE STATUS</div>
-            <div id="statusTxt" style="font-weight: bold;">AGUARDANDO...</div>
+            <div id="devName" style="font-size: 10px; opacity: 0.7;">Buscando hardware...</div>
+            <div id="statusTxt" style="font-weight: bold; font-size: 14px;">AGUARDANDO...</div>
+            <span id="connStatus" class="offline-text">● OFFLINE</span>
         </div>
     </div>
 
-    <div class="section-title">Preview (Simulação)</div>
-    <div id="preview-box">
-        <div id="preview-content"></div>
+    <div class="section-title">Preview Individual</div>
+    <div id="preview-container">
+        <canvas id="p10Canvas" width="400" height="200"></canvas>
     </div>
 
-    <div class="section-title">Comando</div>
+    <div class="section-title">Configuração por Fase:</div>
     <div class="grid" style="margin-top:10px;">
-        <div id="btnRed" class="state-btn active-red" onclick="selectState('red')">VERMELHO</div>
-        <div id="btnGreen" class="state-btn" onclick="selectState('green')">VERDE</div>
+        <div id="selectRed" class="state-btn" onclick="setEditingPhase('red')">FASE VERMELHA</div>
+        <div id="selectGreen" class="state-btn" onclick="setEditingPhase('green')">FASE VERDE</div>
     </div>
 
-    <label>Texto (use Enter para pular linha no Fixo)</label>
-    <textarea id="msgInput" rows="3" oninput="upPrev()">PARE&#10;AGORA</textarea>
+    <label>Mensagens (Enter para trocar de tela no Slide)</label>
+    <textarea id="msgInput" rows="4" oninput="updateMemory()" placeholder="Texto..."></textarea>
 
     <div class="grid">
-        <div><label>Modo</label>
-            <select id="modoExibicao" onchange="upPrev()">
-                <option value="fixed">Fixo</option>
-                <option value="slide" selected>Slide</option>
-                <option value="scroll">Scroll</option>
+        <div>
+            <label>Modo</label>
+            <select id="modoExibicao" onchange="updateMemory()">
+                <option value="fixed">Fixo (Estático)</option>
+                <option value="slide">Slide (Troca)</option>
+                <option value="scroll">Scroll (Corrido)</option>
             </select>
         </div>
-        <div><label>Tamanho</label>
-            <select id="fSize" onchange="upPrev()">
+        <div>
+            <label>Tamanho</label>
+            <select id="fSize" onchange="updateMemory()">
                 <option value="1">Pequeno</option>
                 <option value="2" selected>Médio</option>
                 <option value="3">Grande</option>
@@ -113,117 +71,19 @@
     </div>
 
     <div class="grid">
-        <div><label>Cor Texto</label><input type="color" id="tColor" value="#ffffff" onchange="upPrev()"></div>
-        <div><label>Cor Fundo</label><input type="color" id="bgColor" value="#000000" onchange="upPrev()"></div>
+        <div>
+            <label>Cor Texto</label>
+            <input type="color" id="tColor" value="#ffff00" onchange="updateMemory()">
+        </div>
+        <div>
+            <label>Cor Fundo</label>
+            <input type="color" id="bgColor" value="#000000" onchange="updateMemory()">
+        </div>
     </div>
 
-    <div class="grid">
-        <div><label>Alinhamento H</label><select id="aliH" onchange="upPrev()"><option value="center">Centro</option><option value="left">Esquerda</option><option value="right">Direita</option></select></div>
-        <div><label>Alinhamento V</label><select id="aliV" onchange="upPrev()"><option value="middle">Meio</option><option value="top">Cima</option><option value="bottom">Baixo</option></select></div>
-    </div>
-
-    <label>Velocidade (ms)</label>
-    <input type="number" id="speed" value="2000" step="100" oninput="upPrev()">
-
-    <button class="btn" onclick="enviar()">APLICAR AO PAINEL</button>
+    <button id="btnSalvar" class="btn" onclick="enviarMQTT()" disabled>AGUARDANDO SELEÇÃO</button>
 </div>
 
-<script>
-    let curState = 'red';
-    let sIdx = 0;
-    let sTmr;
-    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
-    client.on('connect', () => client.subscribe("painel_led_status"));
-    client.on('message', (t, m) => {
-        const data = JSON.parse(m.toString());
-        document.getElementById('webRed').classList.toggle('ativo', data.vermelho);
-        document.getElementById('webGreen').classList.toggle('ativo', data.verde);
-        document.getElementById('statusTxt').innerText = data.vermelho ? "SINAL VERMELHO" : "SINAL VERDE";
-    });
-
-    function logar() {
-        if(document.getElementById('user').value === "geral3" && document.getElementById('pass').value === "123") {
-            document.getElementById('login-screen').style.display = 'none';
-            initMap();
-            upPrev();
-        }
-    }
-
-    function initMap() {
-        const map = L.map('map', {zoomControl: false}).setView([-23.6293, -46.6351], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
-        L.marker([-23.6293, -46.6351]).addTo(map).on('click', () => document.getElementById('control-panel').style.display='block');
-    }
-
-    function upPrev() {
-        const rawText = document.getElementById('msgInput').value;
-        const lines = rawText.split('\n').filter(x => x.length >= 0);
-        const box = document.getElementById('preview-box');
-        const content = document.getElementById('preview-content');
-        const modo = document.getElementById('modoExibicao').value;
-        const size = document.getElementById('fSize').value;
-
-        box.style.background = document.getElementById('bgColor').value;
-        content.style.color = document.getElementById('tColor').value;
-        const sizes = { "1": "12px", "2": "18px", "3": "26px" };
-        content.style.fontSize = sizes[size];
-
-        content.classList.remove('scroll-active');
-        content.style.animation = 'none';
-
-        // Alinhamentos
-        const h = document.getElementById('aliH').value;
-        content.style.alignItems = h==='center'?'center':(h==='right'?'flex-end':'flex-start');
-        content.style.textAlign = h;
-        
-        const v = document.getElementById('aliV').value;
-        content.style.justifyContent = v==='middle'?'center':(v==='bottom'?'flex-end':'flex-start');
-        
-        clearInterval(sTmr);
-
-        if (modo === "scroll") {
-            content.classList.add('scroll-active');
-            content.innerHTML = rawText.replace(/\n/g, ' &nbsp; '); 
-            content.style.animation = `scrollText ${document.getElementById('speed').value / 1000}s linear infinite`;
-        } else if (modo === "slide" && lines.length > 1) {
-            const renderLine = (idx) => {
-                content.innerHTML = lines[idx].replace(/\n/g, '<br>');
-            };
-            sTmr = setInterval(() => { 
-                sIdx = (sIdx+1)%lines.length; 
-                renderLine(sIdx);
-            }, document.getElementById('speed').value);
-            renderLine(0);
-        } else {
-            // Fixo: Mantém as quebras de linha visíveis
-            content.innerHTML = rawText.replace(/\n/g, '<br>');
-        }
-    }
-
-    function selectState(s) {
-        curState = s;
-        document.getElementById('btnRed').classList.toggle('active-red', s==='red');
-        document.getElementById('btnGreen').classList.toggle('active-green', s==='green');
-        upPrev();
-    }
-
-    function hex(h) { const n = parseInt(h.slice(1), 16); return [(n>>16)&255, (n>>8)&255, n&255]; }
-
-    function enviar() {
-        const payload = {
-            alerta: (curState==='red'),
-            modo: document.getElementById('modoExibicao').value,
-            mensagens: document.getElementById('msgInput').value.split('\n').filter(x=>x.length>0),
-            tamanho: parseInt(document.getElementById('fSize').value),
-            cor: hex(document.getElementById('tColor').value),
-            corFundo: hex(document.getElementById('bgColor').value),
-            velocidade: parseInt(document.getElementById('speed').value),
-            aliH: document.getElementById('aliH').value,
-            aliV: document.getElementById('aliV').value
-        };
-        client.publish("painel_led_test", JSON.stringify(payload));
-    }
-</script>
+<script src="script.js"></script>
 </body>
 </html>
