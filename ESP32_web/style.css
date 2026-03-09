@@ -1,81 +1,213 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: "Segoe UI", Helvetica, sans-serif;
-  background-color: #000;
-  color: #eaeaea;
+:root { 
+    --primary: #007bff; 
+    --bg: #f4f7f9; 
+    --dark: #1a1a1a; 
+    --success: #4cd964; 
+    --danger: #ff3b30; 
+    --gray: #95a5a6; 
 }
 
-.header {
-  text-align: center;
-  padding: 20px 0;
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    margin: 0; 
+    background: var(--bg); 
+    overflow: hidden; 
 }
 
-h1 {
-  font-size: 1.8rem;
-  color: #4dabf7;
+#login-screen { 
+    position: fixed; 
+    inset: 0; 
+    background: var(--bg); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 3000; 
 }
 
-.form-box {
-  margin: 20px auto;
-  width: 90%;
-  max-width: 400px;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.8);
+.login-box { 
+    background: white; 
+    padding: 40px; 
+    border-radius: 12px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+    width: 320px; 
+    text-align: center; 
 }
 
-label {
-  font-size: 14px;
-  margin-top: 12px;
-  display: block;
+#map { 
+    width: 100%; 
+    height: 100vh; 
+    z-index: 1; 
 }
 
-input, select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 6px;
-  border: none;
-  border-radius: 6px;
-  outline: none;
-  background: #1e1e1e;
-  color: #eaeaea;
+#control-panel { 
+    display: none; 
+    position: fixed; 
+    right: 0; 
+    top: 0; 
+    width: 380px; 
+    height: 100vh; 
+    background: white; 
+    z-index: 2000; 
+    padding: 20px; 
+    box-shadow: -5px 0 15px rgba(0,0,0,0.2); 
+    overflow-y: auto; 
+    box-sizing: border-box; 
 }
 
-input[type="color"] {
-  height: 40px;
-  padding: 0;
-  cursor: pointer;
+.close-btn { 
+    position: absolute; 
+    top: 10px; 
+    left: 10px; 
+    cursor: pointer; 
+    font-size: 20px; 
+    color: var(--gray); 
+    border: none; 
+    background: none; 
 }
 
-.myButton {
-  margin-top: 15px;
-  width: 100%;
-  padding: 10px;
-  font-size: 15px;
-  cursor: pointer;
-  color: #fff;
-  background: linear-gradient(135deg, #1976D2, #0d47a1);
-  border: none;
-  border-radius: 8px;
-  transition: 0.3s;
+.status-card { 
+    background: var(--dark); 
+    color: white; 
+    padding: 15px; 
+    border-radius: 10px; 
+    display: flex; 
+    align-items: center; 
+    margin-bottom: 15px; 
 }
 
-.myButton:hover {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
+.semaforo-visual { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 5px; 
+    background: #000; 
+    padding: 8px; 
+    border-radius: 10px; 
+    margin-right: 15px; 
 }
 
-pre {
-  margin: 20px auto;
-  width: 90%;
-  max-width: 400px;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 15px;
-  color: #90ee90;
-  font-size: 13px;
-  overflow-x: auto;
+.luz { 
+    width: 18px; 
+    height: 18px; 
+    border-radius: 50%; 
+    background: #333; 
+    transition: 0.3s; 
+    border: 1px solid #444; 
 }
+
+.luz-red.active { 
+    background: var(--danger); 
+    box-shadow: 0 0 12px var(--danger); 
+}
+
+.luz-green.active { 
+    background: var(--success); 
+    box-shadow: 0 0 12px var(--success); 
+}
+
+#preview-container { 
+    width: 100%; 
+    background: #000; 
+    padding: 10px; 
+    border-radius: 8px; 
+    margin: 10px 0; 
+    border: 3px solid #333; 
+    box-sizing: border-box; 
+    text-align: center; 
+}
+
+#p10Canvas { 
+    width: 100%; 
+    height: 120px; 
+    background: #000; 
+    image-rendering: pixelated; 
+    display: block; 
+}
+
+.section-title { 
+    font-size: 11px; 
+    font-weight: bold; 
+    color: var(--primary); 
+    text-transform: uppercase; 
+    margin-top: 20px; 
+    border-bottom: 1px solid #eee; 
+}
+
+label { 
+    display: block; 
+    font-size: 11px; 
+    font-weight: bold; 
+    margin: 10px 0 4px; 
+    color: #555; 
+}
+
+textarea, input, select { 
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
+    box-sizing: border-box; 
+    font-size: 14px; 
+}
+
+.grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 10px; 
+}
+
+.btn { 
+    width: 100%; 
+    padding: 15px; 
+    border: none; 
+    border-radius: 6px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    background: var(--primary); 
+    color: white; 
+    margin-top: 15px; 
+    font-size: 14px; 
+    transition: 0.3s; 
+}
+
+.btn:disabled { 
+    background: var(--gray) !important; 
+    cursor: not-allowed; 
+    opacity: 0.6; 
+}
+
+.state-btn { 
+    padding: 12px; 
+    border: 2px solid #ddd; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-size: 11px; 
+    font-weight: bold; 
+    text-align: center; 
+    background: #f9f9f9; 
+    opacity: 0.5; 
+    transition: 0.2s; 
+}
+
+.btn-editing-red { 
+    border-color: var(--danger) !important; 
+    color: var(--danger); 
+    opacity: 1; 
+    background: #fff5f5; 
+}
+
+.btn-editing-green { 
+    border-color: var(--success) !important; 
+    color: var(--success); 
+    opacity: 1; 
+    background: #f5fff6; 
+}
+
+#connStatus { 
+    font-size: 10px; 
+    font-weight: bold; 
+    margin-top: 5px; 
+    display: block; 
+}
+
+.offline-text { color: var(--danger); }
+.online-text { color: var(--success); }
