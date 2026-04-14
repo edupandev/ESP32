@@ -17,14 +17,21 @@
         <input type="text" id="user" placeholder="Usuário">
         <input type="password" id="pass" placeholder="Senha" style="margin-top:10px">
         <button id="btnLogin" class="btn" onclick="logar()">ENTRAR</button>
+        <div id="loginStatus" style="font-size:12px;margin-top:10px;color:#888;min-height:18px;"></div>
     </div>
 </div>
+
+<div id="top-header"><span class="top-header-pmv">PMV</span><span class="top-header-config">CONFIGURAÇÕES</span></div>
 
 <div id="map"></div>
 
 <div id="control-panel">
     <button class="close-btn" onclick="fecharPainel()">×</button>
-    
+    <div class="panel-header">
+        <span class="panel-header-title">PMV</span>
+        <span class="panel-header-sub">Configurações</span>
+    </div>
+
     <div class="status-card" style="margin-top: 20px;">
         <div class="semaforo-visual">
             <div id="ledRed" class="luz luz-red"></div>
@@ -39,7 +46,8 @@
 
     <div class="section-title">Preview Individual</div>
     <div id="preview-container">
-        <canvas id="p10Canvas" width="400" height="200"></canvas>
+        <!-- Canvas: 120 LEDs largura x 40 LEDs altura = proporção 3:1, renderizado 4px/LED -->
+        <canvas id="p10Canvas" width="576" height="240"></canvas>
     </div>
 
     <div class="section-title">Configuração por Fase:</div>
@@ -48,13 +56,14 @@
         <div id="selectGreen" class="state-btn" onclick="setEditingPhase('green')">FASE VERDE</div>
     </div>
 
-    <label>Mensagens (Enter para trocar de tela no Slide)</label>
-    <textarea id="msgInput" rows="4" oninput="updateMemory()" placeholder="Texto..."></textarea>
+    <label>Mensagens (Enter = nova tela no Slide / segunda linha no Fixo)</label>
+    <textarea id="msgInput" rows="5" oninput="limitarTexto()" placeholder="Texto..."></textarea>
+    <div id="charInfo" style="font-size:10px;color:#888;text-align:right;margin-top:2px;"></div>
 
     <div class="grid">
         <div>
             <label>Modo</label>
-            <select id="modoExibicao" onchange="updateMemory()">
+            <select id="modoExibicao" onchange="updateMemory(); limitarTexto()">
                 <option value="fixed">Fixo (Estático)</option>
                 <option value="slide">Slide (Troca)</option>
                 <option value="scroll">Scroll (Corrido)</option>
@@ -62,8 +71,7 @@
         </div>
         <div>
             <label>Tamanho</label>
-            <select id="fSize" onchange="updateMemory()">
-                <option value="1">Pequeno</option>
+            <select id="fSize" onchange="updateMemory(); limitarTexto()">
                 <option value="2" selected>Médio</option>
                 <option value="3">Grande</option>
             </select>
@@ -72,13 +80,32 @@
 
     <div class="grid">
         <div>
-            <label>Cor Texto</label>
-            <input type="color" id="tColor" value="#ffff00" onchange="updateMemory()">
+            <label>Alinhamento H</label>
+            <select id="align" onchange="updateMemory(); limitarTexto()">
+                <option value="left">Esquerda</option>
+                <option value="center">Centro</option>
+            </select>
         </div>
         <div>
-            <label>Cor Fundo</label>
-            <input type="color" id="bgColor" value="#000000" onchange="updateMemory()">
+            <label>Posição V</label>
+            <select id="valign" onchange="updateMemory(); limitarTexto()">
+                <option value="top">Topo</option>
+                <option value="center" selected>Centro</option>
+                <option value="bottom">Rodapé</option>
+            </select>
         </div>
+    </div>
+
+    <div>
+        <label>Cor do Texto</label>
+        <div class="color-picker" id="tColorPicker"></div>
+        <input type="hidden" id="tColor" value="#ffff00">
+    </div>
+
+    <div style="margin-top:10px;">
+        <label>Cor do Fundo</label>
+        <div class="color-picker" id="bgColorPicker"></div>
+        <input type="hidden" id="bgColor" value="#000000">
     </div>
 
     <button id="btnSalvar" class="btn" onclick="enviarMQTT()" disabled>AGUARDANDO SELEÇÃO</button>
