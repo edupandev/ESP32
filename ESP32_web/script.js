@@ -20,9 +20,8 @@ const ALTURA_GRANDE = 10;  // tamanho 3
 const ALTURA_MEDIO  = 13;  // tamanho 2
 
 let devicesMemory = {};
-if (localStorage.getItem('pmv_multi_v1')) {
-    try { devicesMemory = JSON.parse(localStorage.getItem('pmv_multi_v1')); } catch(e) {}
-}
+// NÃO carrega localStorage — o sync do hardware sempre tem prioridade.
+// O localStorage é usado apenas como fallback visual até o sync chegar.
 
 // ===================== PALETA DE CORES =====================
 const PALETA = [
@@ -31,7 +30,7 @@ const PALETA = [
     { hex: '#ffff00', label: 'Amarelo' },
     { hex: '#ff8c00', label: 'Laranja' },
     { hex: '#00ff00', label: 'Verde'   },
-    { hex: '#042649b0', label: 'Azul'    },
+    { hex: '#0080ff', label: 'Azul'    },
 ];
 
 function buildColorPicker(containerId, hiddenId, defaultColor) {
@@ -63,7 +62,7 @@ function syncColorPickerUI(containerId, hiddenId) {
 }
 
 // ===================== MQTT =====================
-const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
+const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", {
     reconnectPeriod: 3000,
     connectTimeout: 10000,
 });
