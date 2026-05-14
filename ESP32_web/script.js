@@ -12,7 +12,7 @@ const ctx = canvas.getContext('2d');
 
 // Hardware real: 6 painéis de 20×40 = 120×40 LEDs
 // Canvas: 720×240px = exatamente 6px por LED
-const LED_COLS   = 96;
+const LED_COLS   = 112;
 const LED_ROWS   = 40;
 const LED_PX     = 6;
 // Altura real das letras no painel (em LEDs/pixels)
@@ -138,7 +138,7 @@ client.on('message', (topic, message) => {
                         tamanho: String(syncData.r_tam),
                         cor:     rgb565ToHex(syncData.r_cor),
                         fundo:   "#000000",
-                        align:   syncData.r_align  || "center",
+                        align:   syncData.r_align  || "left",
                         valign:  syncData.r_valign || "center"
                     },
                     green: {
@@ -147,7 +147,7 @@ client.on('message', (topic, message) => {
                         tamanho: String(syncData.g_tam),
                         cor:     rgb565ToHex(syncData.g_cor),
                         fundo:   "#000000",
-                        align:   syncData.g_align  || "center",
+                        align:   syncData.g_align  || "left",
                         valign:  syncData.g_valign || "center"
                     }
                 };
@@ -369,6 +369,7 @@ const ACENTO_MAP = {
 };
 
 function drawTextWithAccents(text, x, y, cor) {
+    offCtx.textAlign = 'left';  // garante sempre esquerda
     let cx = x;
     for (const ch of text) {
         const ai = ACENTO_MAP[ch];
@@ -413,6 +414,7 @@ function loop() {
 
                 offCtx.font = `${fSpec.bold ? "bold " : ""}${fSpec.size}px Arial, sans-serif`;
     offCtx.textBaseline = "alphabetic";
+    offCtx.textAlign     = "left";
 
     if (linhas.length > 0) {
         if (modo === "scroll") {
@@ -437,6 +439,7 @@ function loop() {
             drawTextWithAccents(l1, x1, y1, corTxt);
 
             if (dual) {
+                offCtx.font = `${fSpec.bold ? 'bold ' : ''}${fSpec.size}px Arial, sans-serif`;
                 const x2 = align === 'center'
                     ? Math.max(0, Math.round((LED_COLS - offCtx.measureText(l2).width) / 2))
                     : 1;
@@ -456,6 +459,7 @@ function loop() {
             drawTextWithAccents(l1, x1, y1, corTxt);
 
             if (dual) {
+                offCtx.font = `${fSpec.bold ? 'bold ' : ''}${fSpec.size}px Arial, sans-serif`;
                 const x2 = align === 'center'
                     ? Math.max(0, Math.round((LED_COLS - offCtx.measureText(l2).width) / 2))
                     : 1;
